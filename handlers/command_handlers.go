@@ -38,7 +38,7 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
     }
 }
 
-func (h * CommandHandler) HandleContact(message *tgbotapi.Message) {
+func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceived)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 	h.bot.Send(msg)
