@@ -41,6 +41,8 @@ func main() {
 				}
 			} else if update.CallbackQuery != nil {
 				callbackHandler.HandleCallback(update)
+			} else if update.Message != nil && update.Message.Contact != nil {
+				commandHanler.HandleContact(update.Message)
 			}
 		}
 	}

@@ -13,6 +13,7 @@ type CommandHandler struct {
 
 type CommandHandlerMessages struct {
 	Registration string `json:"registration"`
+	ContactReceived string `json:"contact_received"`
 }
 
 func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
@@ -31,10 +32,25 @@ func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
 func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
     switch message.Command() {
     case "registration":
-		responseMsg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Registration)
-		_, err := h.bot.Send(responseMsg)
-		onFail("Failed to send message %v", err)
+		h.handleRegistrationCommand(message)
     default:
 
     }
+}
+
+func (h * CommandHandler) HandleContact(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceived)
+	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+	h.bot.Send(msg)
+}
+
+func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Registration)
+	button := tgbotapi.NewKeyboardButtonContact("Поделиться контактными данными")
+	keyboard := tgbotapi.NewReplyKeyboard(tgbotapi.NewKeyboardButtonRow(button))
+	msg.ReplyMarkup = keyboard
+
+	_, err := h.bot.Send(msg)
+
+	onFail("Failed to send message %v", err)
 }
