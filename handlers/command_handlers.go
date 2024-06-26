@@ -13,5 +13,8 @@ func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
 }
 
 func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
-	
+	responseMsg := tgbotapi.NewMessage(message.Chat.ID, "Command "+message.Command())
+
+	_, err := h.bot.Send(responseMsg)
+	onFail("Failed to send message %v", err)
 }
