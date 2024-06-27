@@ -24,8 +24,12 @@ func ConnectDB(connectingString string) (*Database, error) {
 }
 
 func (db *Database) SetUserState(tgID int64, state string) error  {
-    query := `UPDATE users_states SET state = $1 WHERE telegram_id = $2`
-    _, err := db.Conn.Exec(query, state, tgID)
+    query := `
+        INSERT INTO users_states (telegram_id, state)
+        VALUES ($1, $2)
+        ON CONFLICT (telegram_id)
+        DO UPDATE SET state = EXCLUDED.state`
+    _, err := db.Conn.Exec(query, tgID, state)
     return err
 }
 

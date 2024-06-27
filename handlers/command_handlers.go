@@ -95,12 +95,23 @@ func (h *CommandHandler) handleDefault(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Registration)
-	button := tgbotapi.NewKeyboardButtonContact("Поделиться контактными данными")
-	keyboard := tgbotapi.NewReplyKeyboard(tgbotapi.NewKeyboardButtonRow(button))
-	msg.ReplyMarkup = keyboard
+	err := h.db.SetUserState(message.Chat.ID, "registration__pick_role")
+	errPrintf("Failed to set user state %v", err)
 
-	_, err := h.bot.Send(msg)
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Вы клиент или рабочий?")
+	msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton("Клиент"),
+			tgbotapi.NewKeyboardButton("Рабочий"),
+		),
+	)
 
+	_, err = h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)
+
+
+//	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Registration)
+//	button := tgbotapi.NewKeyboardButtonContact("Поделиться контактными данными")
+//	keyboard := tgbotapi.NewReplyKeyboard(tgbotapi.NewKeyboardButtonRow(button))
+//	msg.ReplyMarkup = keyboard
 }
