@@ -14,6 +14,7 @@ type CommandHandler struct {
 type CommandHandlerMessages struct {
 	Registration string `json:"registration"`
 	ContactReceived string `json:"contact_received"`
+	Default string `json:"default_unregistered"`
 }
 
 func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
@@ -34,14 +35,23 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
     case "registration":
 		h.handleRegistrationCommand(message)
     default:
-
+		h.handleDefault(message)
     }
 }
 
 func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
 	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceived)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-	h.bot.Send(msg)
+
+	_, err := h.bot.Send(msg)
+	onFail("Failed to send message %v", err)
+}
+
+func (h *CommandHandler) handleDefault(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Default)
+
+	_, err := h.bot.Send(msg)
+	onFail("Failed to send message %v", err)
 }
 
 func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
