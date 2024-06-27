@@ -108,10 +108,4 @@ func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
 
 	err = h.db.SetUserState(message.Chat.ID, "registration__pick_role")
 	errPrintf("Failed to set user state %v", err)
-
-
-//	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Registration)
-//	button := tgbotapi.NewKeyboardButtonContact("Поделиться контактными данными")
-//	keyboard := tgbotapi.NewReplyKeyboard(tgbotapi.NewKeyboardButtonRow(button))
-//	msg.ReplyMarkup = keyboard
 }

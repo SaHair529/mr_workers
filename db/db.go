@@ -82,6 +82,19 @@ type Speciality struct {
     Speciality string
 }
 
+func (db *Database) GetSpecialityByTitle(title string) (Speciality, error) {
+    var speciality Speciality
+    query := `SELECT id, speciality FROM specialities WHERE speciality = $1`
+    err := db.Conn.QueryRow(query, title).Scan(&speciality.ID, &speciality.Speciality)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return Speciality{}, nil
+        }
+        return Speciality{}, err
+    }
+    return speciality, nil
+}
+
 func (db *Database) GetAllSpecialities() ([]Speciality, error) {
     query := `SELECT id, speciality FROM specialities`
     rows, err := db.Conn.Query(query)
@@ -105,6 +118,16 @@ func (db *Database) GetAllSpecialities() ([]Speciality, error) {
     }
 
     return specialities, nil
+}
+
+func (db *Database) SetWorkerSpeciality(tgID int64, speciality string) error {
+    query := `
+        INSERT INTO workers (telegram_id, speciality)
+        VALUES ($1, $2)
+        ON CONFLICT (telegram_id)
+        DO UPDATE SET speciality = EXCLUDED.speciality`
+    _, err := db.Conn.Exec(query, tgID, speciality)
+    return err
 }
 
 func onFail(message string, err error) {
