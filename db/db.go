@@ -77,6 +77,36 @@ func (db *Database) AddUser(tgID int64, fullname string, phone string) error {
     return err
 }
 
+type Speciality struct {
+    ID int64
+    Speciality string
+}
+
+func (db *Database) GetAllSpecialities() ([]Speciality, error) {
+    query := `SELECT id, speciality FROM specialities`
+    rows, err := db.Conn.Query(query)
+    if err != nil {
+        return nil, err
+    }
+
+    defer rows.Close()
+
+    var specialities []Speciality
+    for rows.Next() {
+        var spec Speciality
+        if err := rows.Scan(&spec.ID, &spec.Speciality); err != nil {
+            return nil, err
+        }
+        specialities = append(specialities, spec)
+    }
+
+    if err := rows.Err(); err != nil {
+        return nil, err
+    }
+
+    return specialities, nil
+}
+
 func onFail(message string, err error) {
 	if err != nil {
 		log.Fatalf(message, err)
