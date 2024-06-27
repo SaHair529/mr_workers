@@ -71,6 +71,8 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
 
             _, err = h.bot.Send(msg)
             errPrintf("Failed to send message %v", err)
+
+            h.db.SetUserState(message.Chat.ID, "registration__worker_pick_speciality")
         } else {
             msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите роль, нажав на подходящую кнопку ниже")
 
