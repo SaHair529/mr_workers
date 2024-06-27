@@ -49,6 +49,12 @@ func (db *Database) GetUserByTgId(tgID int64) (*User, error) {
     return &user, nil
 }
 
+func (db *Database) AddUser(tgID int64, fullname string, phone string) error {
+    query := `INSERT INTO users (telegram_id, fullname, phone) VALUES ($1,$2,$3)`
+    _, err := db.Conn.Exec(query, tgID, fullname, phone)
+    return err
+}
+
 func onFail(message string, err error) {
 	if err != nil {
 		log.Fatalf(message, err)

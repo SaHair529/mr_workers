@@ -4,6 +4,7 @@ import (
     "encoding/json"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     "io/ioutil"
+    "log"
     "shdbd/mr_workers/db"
 )
 
@@ -16,15 +17,17 @@ type CommandHandler struct {
 type CommandHandlerMessages struct {
 	Registration string `json:"registration"`
 	ContactReceived string `json:"contact_received"`
+	ContactReceivedFail string `json:"contact_received_fail"`
+	ContactReceivedAlreadyExists string `json:"contact_received_already_exists"`
 	Default string `json:"default_unregistered"`
 }
 
 func NewCommandHandler(bot *tgbotapi.BotAPI, db *db.Database) *CommandHandler {
 	messagesJson, err := ioutil.ReadFile("messages.json")
-	onFail("Failed to read file %v", err)
+	errPrintf("Failed to read file %v", err)
 	var messages CommandHandlerMessages
 	err = json.Unmarshal(messagesJson, &messages)
-	onFail("Failed to unmarshal json %v", err)
+	errPrintf("Failed to unmarshal json %v", err)
 
 	return &CommandHandler{
 		bot: bot,
@@ -43,22 +46,45 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
+	user, err := h.db.GetUserByTgId(message.Chat.ID)
+	errPrintf("Failed to get user %v", err)
+
+	if user != nil {
+		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceivedAlreadyExists)
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		return
+	}
+
+	fullname := message.Contact.FirstName+" "+message.Contact.LastName
+    err = h.db.AddUser(message.Chat.ID, fullname, message.Contact.PhoneNumber)
+	if err != nil {
+		log.Printf("Failed to add user %v", err)
+
+		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceivedFail)
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+
+		return
+	}
+
 	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceived)
 	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
 
-	_, err := h.bot.Send(msg)
-	onFail("Failed to send message %v", err)
+	_, err = h.bot.Send(msg)
+	errPrintf("Failed to send message %v", err)
 }
 
 func (h *CommandHandler) handleDefault(message *tgbotapi.Message) {
 	user, err := h.db.GetUserByTgId(message.Chat.ID)
-	onFail("Failed to get user %v", err)
+	errPrintf("Failed to get user %v", err)
 
 	if user == nil {
 		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Default)
 
 		_, err := h.bot.Send(msg)
-		onFail("Failed to send message %v", err)
+		errPrintf("Failed to send message %v", err)
 
 		return
 	}
@@ -72,5 +98,5 @@ func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
 
 	_, err := h.bot.Send(msg)
 
-	onFail("Failed to send message %v", err)
+	errPrintf("Failed to send message %v", err)
 }

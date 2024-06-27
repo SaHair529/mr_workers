@@ -19,12 +19,12 @@ func (h *MessageHandler) HandleMessage(message *tgbotapi.Message) {
 	responseMsg := tgbotapi.NewMessage(message.Chat.ID, message.Text)
 
 	_, err := h.bot.Send(responseMsg)
-	onFail("Failed to send message %v", err)
+	errPrintf("Failed to send message %v", err)
 
 }
 
-func onFail(message string, err error) {
+func errPrintf(message string, err error) {
 	if err != nil {
-		log.Fatalf(message, err)
+		log.Printf(message, err)
 	}
 }
