@@ -23,6 +23,24 @@ func ConnectDB(connectingString string) (*Database, error) {
     return &Database{Conn: conn}, nil
 }
 
+type UserState struct {
+    TelegramID int64
+    State string
+}
+
+func (db *Database) GetUserState(tgID int64) (string, error) {
+    var state string
+    query := `SELECT state FROM users_states WHERE telegram_id = $1`
+    err := db.Conn.QueryRow(query, tgID).Scan(&state)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return "", nil
+        }
+        return "", err
+    }
+    return state, nil
+}
+
 func (db *Database) SetUserState(tgID int64, state string) error  {
     query := `
         INSERT INTO users_states (telegram_id, state)

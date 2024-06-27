@@ -13,14 +13,15 @@ import (
 
 func main() {
 	cfg, err := config.LoadConfig()
-	onFail("Failed to load config %v", err)
+	errPrintf("Failed to load config %v", err)
 
 	db, err := db2.ConnectDB(cfg.DatabaseURL)
-	onFail("Failed to connect db %v", err)
+	errPrintf("Failed to connect db %v", err)
 
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
-	onFail("Failed to create bot %v", err)
+	errPrintf("Failed to create bot %v", err)
 
+	stateHandler := handlers.NewStateHandler(bot, db)
 	messageHandler := handlers.NewMessageHandler(bot)
 	commandHanler := handlers.NewCommandHandler(bot, db)
 	callbackHandler := handlers.NewCallbackHandler(bot)
@@ -29,7 +30,7 @@ func main() {
 	updates.Timeout = 60
 
 	updatesChan, err := bot.GetUpdatesChan(updates)
-	onFail("Failed to create updates channel %v", err)
+	errPrintf("Failed to create updates channel %v", err)
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
@@ -37,7 +38,12 @@ func main() {
 	for {
 		select {
 		case update := <- updatesChan:
-			if update.Message != nil && update.Message.Contact != nil {
+			userState, err := db.GetUserState(update.Message.Chat.ID)
+			errPrintf("Failed to get user state %v", err)
+
+			if userState != "" {
+				stateHandler.HandleState(userState, update.Message)
+			} else if update.Message != nil && update.Message.Contact != nil {
 				commandHanler.HandleContact(update.Message)
 			} else if update.Message != nil {
 				if update.Message.IsCommand() {
@@ -52,8 +58,8 @@ func main() {
 	}
 }
 
-func onFail(message string, err error) {
+func errPrintf(message string, err error) {
 	if err != nil {
-		log.Fatalf(message, err)
+		log.Printf(message, err)
 	}
 }
