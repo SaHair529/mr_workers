@@ -6,6 +6,7 @@ import (
     "os"
     "os/signal"
     "shdbd/mr_workers/config"
+    db2 "shdbd/mr_workers/db"
     "shdbd/mr_workers/handlers"
     "syscall"
 )
@@ -14,11 +15,14 @@ func main() {
 	cfg, err := config.LoadConfig()
 	onFail("Failed to load config %v", err)
 
+	db, err := db2.ConnectDB(cfg.DatabaseURL)
+	onFail("Failed to connect db %v", err)
+
 	bot, err := tgbotapi.NewBotAPI(cfg.TelegramToken)
 	onFail("Failed to create bot %v", err)
 
 	messageHandler := handlers.NewMessageHandler(bot)
-	commandHanler := handlers.NewCommandHandler(bot)
+	commandHanler := handlers.NewCommandHandler(bot, db)
 	callbackHandler := handlers.NewCallbackHandler(bot)
 
 	updates := tgbotapi.NewUpdate(0)

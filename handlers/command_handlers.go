@@ -4,11 +4,13 @@ import (
     "encoding/json"
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     "io/ioutil"
+    "shdbd/mr_workers/db"
 )
 
 type CommandHandler struct {
 	bot *tgbotapi.BotAPI
 	messages CommandHandlerMessages
+	db *db.Database
 }
 
 type CommandHandlerMessages struct {
@@ -17,7 +19,7 @@ type CommandHandlerMessages struct {
 	Default string `json:"default_unregistered"`
 }
 
-func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
+func NewCommandHandler(bot *tgbotapi.BotAPI, db *db.Database) *CommandHandler {
 	messagesJson, err := ioutil.ReadFile("messages.json")
 	onFail("Failed to read file %v", err)
 	var messages CommandHandlerMessages
@@ -27,6 +29,7 @@ func NewCommandHandler(bot *tgbotapi.BotAPI) *CommandHandler {
 	return &CommandHandler{
 		bot: bot,
 		messages: messages,
+		db: db,
 	}
 }
 
@@ -48,10 +51,17 @@ func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) handleDefault(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Default)
+	user, err := h.db.GetUserByTgId(message.Chat.ID)
+	onFail("Failed to get user %v", err)
 
-	_, err := h.bot.Send(msg)
-	onFail("Failed to send message %v", err)
+	if user == nil {
+		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Default)
+
+		_, err := h.bot.Send(msg)
+		onFail("Failed to send message %v", err)
+
+		return
+	}
 }
 
 func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {

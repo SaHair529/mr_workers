@@ -29,6 +29,26 @@ func (db *Database) SetUserState(tgID int64, state string) error  {
     return err
 }
 
+type User struct {
+    ID int64
+    TelegramID int64
+    FullName string
+    Phone string
+}
+
+func (db *Database) GetUserByTgId(tgID int64) (*User, error) {
+    var user User
+    query := `SELECT id, telegram_id, fullname, phone FROM users WHERE telegram_id = $1`
+    err := db.Conn.QueryRow(query, tgID).Scan(&user.ID, &user.TelegramID, &user.FullName, &user.Phone)
+    if err != nil {
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, nil
+        }
+        return nil, err
+    }
+    return &user, nil
+}
+
 func onFail(message string, err error) {
 	if err != nil {
 		log.Fatalf(message, err)
