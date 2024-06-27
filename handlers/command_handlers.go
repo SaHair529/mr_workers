@@ -52,6 +52,10 @@ func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
 	if user != nil {
 		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.ContactReceivedAlreadyExists)
 		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+
 		return
 	}
 
