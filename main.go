@@ -37,7 +37,9 @@ func main() {
 	for {
 		select {
 		case update := <- updatesChan:
-			if update.Message != nil {
+			if update.Message != nil && update.Message.Contact != nil {
+				commandHanler.HandleContact(update.Message)
+			} else if update.Message != nil {
 				if update.Message.IsCommand() {
 					commandHanler.HandleCommand(update.Message)
 				} else {
@@ -45,8 +47,6 @@ func main() {
 				}
 			} else if update.CallbackQuery != nil {
 				callbackHandler.HandleCallback(update)
-			} else if update.Message != nil && update.Message.Contact != nil {
-				commandHanler.HandleContact(update.Message)
 			}
 		}
 	}
