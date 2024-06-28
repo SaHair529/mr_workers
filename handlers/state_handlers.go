@@ -99,7 +99,7 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
 
         h.db.SetWorkerSpeciality(message.Chat.ID, pickedSpeciality)
 
-        cities := []string{"Махачкала"}
+        cities := []string{"Махачкала"} // todo заменить массив на базу данных в дальнейшем
 
         var rows [][]tgbotapi.KeyboardButton
         var row []tgbotapi.KeyboardButton
@@ -125,5 +125,59 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
 
         _, err = h.bot.Send(msg)
         errPrintf("Failed to send message %v", err)
+
+        h.db.SetUserState(message.Chat.ID, "registration__worker_pick_city")
+
+    case "worker_pick_city":
+        cities := []string{"Махачкала"} // todo заменить массив на базу данных в дальнейшем
+        pickedCity := message.Text
+
+        if !cityExists(cities, pickedCity) {
+            msg := tgbotapi.NewMessage(message.Chat.ID, "Введенный Вами город некорректен. Выберите подходящий город, нажав на одну из кнопок ниже")
+            _, err := h.bot.Send(msg)
+            errPrintf("Failed to send message %v", err)
+            return
+        }
+
+        err := h.db.SetRowField(message.Chat.ID, "workers", "city", pickedCity)
+        errPrintf("Failed to set worker city %v", err)
+
+        msg := tgbotapi.NewMessage(message.Chat.ID, "Поделитесь вашим номером телефона, нажав на кнопку снизу")
+        msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(
+            tgbotapi.NewKeyboardButtonRow(
+                tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
+            ),
+        )
+        _, err = h.bot.Send(msg)
+        errPrintf("Failed to send message %v", err)
+
+        h.db.SetUserState(message.Chat.ID, "registration__worker_share_contact")
+
+    case "worker_share_contact":
+        if message.Contact == nil {
+            msg := tgbotapi.NewMessage(message.Chat.ID, "Некорректный ответ. Предоставьте свои контактные данные, нажав на кнопку снизу")
+            _, err := h.bot.Send(msg)
+            errPrintf("Failed to send message %v", err)
+            return
+        }
+
+        fullname := message.Contact.FirstName+" "+message.Contact.LastName
+        err := h.db.SetWorkerContactData(message.Chat.ID, fullname, message.Contact.PhoneNumber)
+        errPrintf("Failed to set worker contact data %v", err)
+
+        msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация прошла успешно ✅")
+        msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+        _, err = h.bot.Send(msg)
+
+        h.db.SetUserState(message.Chat.ID, "")
     }
+}
+
+func cityExists(cities []string, city string) bool {
+    for _, c := range cities {
+        if c == city {
+            return true
+        }
+    }
+    return false
 }

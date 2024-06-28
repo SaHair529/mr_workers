@@ -3,6 +3,7 @@ package db
 import (
     "database/sql"
     "errors"
+    "fmt"
     _ "github.com/lib/pq"
     "log"
 )
@@ -127,6 +128,27 @@ func (db *Database) SetWorkerSpeciality(tgID int64, speciality string) error {
         ON CONFLICT (telegram_id)
         DO UPDATE SET speciality = EXCLUDED.speciality`
     _, err := db.Conn.Exec(query, tgID, speciality)
+    return err
+}
+
+func (db *Database) SetWorkerContactData(tgID int64, fullname, phone string) error {
+    query := `
+        INSERT INTO workers (telegram_id, fullname, phone)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (telegram_id)
+        DO UPDATE SET fullname = EXCLUDED.fullname, phone = EXCLUDED.phone`
+    _, err := db.Conn.Exec(query, tgID, fullname, phone)
+    return err
+}
+
+func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue string) error {
+    query := fmt.Sprintf(`
+        INSERT INTO %s (telegram_id, %s)
+        VALUES ($1, $2)
+        ON CONFLICT (telegram_id)
+        DO UPDATE SET %s = EXCLUDED.%s`, tableName, fieldName, fieldName, fieldName)
+
+    _, err := db.Conn.Exec(query, tgID, fieldValue)
     return err
 }
 
