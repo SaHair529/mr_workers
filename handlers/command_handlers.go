@@ -5,8 +5,8 @@ import (
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
     "io/ioutil"
     "log"
+    "shdbd/mr_workers/constants"
     "shdbd/mr_workers/db"
-    "shdbd/mr_workers/messages"
 )
 
 type CommandHandler struct {
@@ -127,7 +127,7 @@ func (h *CommandHandler) handleResetCommand(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) handleMainCommand(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID,  messages.MainMenu)
+	msg := tgbotapi.NewMessage(message.Chat.ID,  constants.MainMenuMessage)
 
 	_, err := h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)

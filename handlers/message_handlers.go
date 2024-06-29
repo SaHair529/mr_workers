@@ -3,7 +3,7 @@ package handlers
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"log"
-    "shdbd/mr_workers/messages"
+    "shdbd/mr_workers/constants"
 )
 
 type MessageHandler struct {
@@ -17,7 +17,7 @@ func NewMessageHandler(bot *tgbotapi.BotAPI) *MessageHandler {
 }
 
 func (h *MessageHandler) HandleMessage(message *tgbotapi.Message) {
-	msg := tgbotapi.NewMessage(message.Chat.ID, messages.MainMenu)
+	msg := tgbotapi.NewMessage(message.Chat.ID, constants.MainMenuMessage)
 
 	_, err := h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)
