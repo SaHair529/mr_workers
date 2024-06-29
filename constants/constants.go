@@ -9,3 +9,5 @@ const (
 ➕ Регистрация      /registration
 	`
 )
+
+var Cities = []string{"Махачкала"}

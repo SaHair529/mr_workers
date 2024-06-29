@@ -2,6 +2,7 @@ package handlers
 
 import (
     tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+    "shdbd/mr_workers/constants"
     "shdbd/mr_workers/db"
     "strings"
 )
@@ -109,12 +110,10 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
 
         h.db.SetWorkerSpeciality(message.Chat.ID, pickedSpeciality)
 
-        cities := []string{"Махачкала"} // todo заменить массив на базу данных в дальнейшем
-
         var rows [][]tgbotapi.KeyboardButton
         var row []tgbotapi.KeyboardButton
 
-        for i, city := range cities {
+        for i, city := range constants.Cities {
             button := tgbotapi.NewKeyboardButton(city)
             row = append(row, button)
 
@@ -139,10 +138,9 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
         h.db.SetUserState(message.Chat.ID, "registration__worker_pick_city")
 
     case "worker_pick_city":
-        cities := []string{"Махачкала"} // todo заменить массив на базу данных в дальнейшем
         pickedCity := message.Text
 
-        if !cityExists(cities, pickedCity) {
+        if !cityExists(constants.Cities, pickedCity) {
             msg := tgbotapi.NewMessage(message.Chat.ID, "Введенный Вами город некорректен. Выберите подходящий город, нажав на одну из кнопок ниже")
             _, err := h.bot.Send(msg)
             errPrintf("Failed to send message %v", err)
