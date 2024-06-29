@@ -6,6 +6,7 @@ import (
     "io/ioutil"
     "log"
     "shdbd/mr_workers/db"
+    "shdbd/mr_workers/messages"
 )
 
 type CommandHandler struct {
@@ -42,6 +43,8 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
 		h.handleRegistrationCommand(message)
     case "reset":
 		h.handleResetCommand(message)
+    case "main":
+		h.handleMainCommand(message)
     default:
 		h.handleDefault(message)
     }
@@ -120,5 +123,12 @@ func (h *CommandHandler) handleResetCommand(message *tgbotapi.Message) {
 	errPrintf("Failed to send message %v", err)
 
 	err = h.db.SetUserState(message.Chat.ID, "")
+	errPrintf("Failed to send message %v", err)
+}
+
+func (h *CommandHandler) handleMainCommand(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID,  messages.MainMenu)
+
+	_, err := h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)
 }
