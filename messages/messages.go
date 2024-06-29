@@ -1,5 +1,6 @@
 package messages
 
+// Константа с регулярными сообщениями
 const (
 	MainMenu = `Главное меню:
 
