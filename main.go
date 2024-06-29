@@ -41,7 +41,7 @@ func main() {
 			userState, err := db.GetUserState(update.Message.Chat.ID)
 			errPrintf("Failed to get user state %v", err)
 
-			if userState != "" {
+			if userState != "" && !update.Message.IsCommand() {
 				stateHandler.HandleState(userState, update.Message)
 			} else if update.Message != nil && update.Message.Contact != nil {
 				commandHanler.HandleContact(update.Message)
