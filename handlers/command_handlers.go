@@ -40,6 +40,8 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
     switch message.Command() {
     case "registration":
 		h.handleRegistrationCommand(message)
+    case "reset":
+		h.handleResetCommand(message)
     default:
 		h.handleDefault(message)
     }
@@ -108,4 +110,15 @@ func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
 
 	err = h.db.SetUserState(message.Chat.ID, "registration__pick_role")
 	errPrintf("Failed to set user state %v", err)
+}
+
+func (h *CommandHandler) handleResetCommand(message *tgbotapi.Message) {
+	msg := tgbotapi.NewMessage(message.Chat.ID, "Действие отменено")
+	msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+
+	_, err := h.bot.Send(msg)
+	errPrintf("Failed to send message %v", err)
+
+	err = h.db.SetUserState(message.Chat.ID, "")
+	errPrintf("Failed to send message %v", err)
 }
