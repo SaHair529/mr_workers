@@ -34,6 +34,16 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
     switch internalState {
     case "pick_role":
         if message.Text == "Клиент" {
+            msg := tgbotapi.NewMessage(message.Chat.ID, "Поделитесь вашим номером телефона, нажав на кнопку снизу")
+            msg.ReplyMarkup = tgbotapi.NewReplyKeyboard(
+                tgbotapi.NewKeyboardButtonRow(
+                    tgbotapi.NewKeyboardButtonContact("Поделиться контактом"),
+                ),
+            )
+            _, err := h.bot.Send(msg)
+            errPrintf("Failed to send message %v", err)
+
+            h.db.SetUserState(message.Chat.ID, "registration__client_share_contact")
         } else if message.Text == "Рабочий" {
             specialities, err := h.db.GetAllSpecialities()
             if err != nil {
@@ -164,6 +174,24 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
         fullname := message.Contact.FirstName+" "+message.Contact.LastName
         err := h.db.SetWorkerContactData(message.Chat.ID, fullname, message.Contact.PhoneNumber)
         errPrintf("Failed to set worker contact data %v", err)
+
+        msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация прошла успешно ✅")
+        msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+        _, err = h.bot.Send(msg)
+
+        h.db.SetUserState(message.Chat.ID, "")
+
+    case "client_share_contact":
+        if message.Contact == nil {
+            msg := tgbotapi.NewMessage(message.Chat.ID, "Некорректный ответ. Предоставьте свои контактные данные, нажав на кнопку снизу")
+            _, err := h.bot.Send(msg)
+            errPrintf("Failed to send message %v", err)
+            return
+        }
+
+        fullname := message.Contact.FirstName+" "+message.Contact.LastName
+        err := h.db.AddUser(message.Chat.ID, fullname, message.Contact.PhoneNumber)
+        errPrintf("Failed to add user %v", err)
 
         msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация прошла успешно ✅")
         msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
