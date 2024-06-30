@@ -4,9 +4,9 @@ package constants
 const (
 	MainMenuMessage = `Главное меню:
 
-🚀 Создать заявку  /create_request
+🚀 Создать заявку   /create_request
 👤 Мой профиль     /my_profile
-➕ Регистрация      /registration
+➕ Регистрация       /registration
 	`
 )
 
