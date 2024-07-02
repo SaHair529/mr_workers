@@ -5,6 +5,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"shdbd/mr_workers/constants"
 	"shdbd/mr_workers/db"
+	"strconv"
 	"strings"
 )
 
@@ -255,7 +256,7 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 			return
 		}
 
-		err := h.db.SetRowField(message.Chat.ID, "requests", "city", pickedCity)
+		err := h.db.SetFreeRequestField(message.Chat.ID, "city", pickedCity)
 		errPrintf("Failed to set row field %v", err)
 
 		msg := tgbotapi.NewMessage(message.Chat.ID, "Опишите работу, которую необходимо проделать")
@@ -275,7 +276,7 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 			return
 		}
 
-		err := h.db.SetRowField(message.Chat.ID, "requests", "description", description)
+		err := h.db.SetFreeRequestField(message.Chat.ID, "description", description)
 		errPrintf("Failed to set row field %v", err)
 
 		err = h.db.SetUserState(message.Chat.ID, "createrequest__submit_request")
@@ -325,12 +326,43 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 		}
 
 		if message.Text == "Потвердить" {
-			// todo разослать заявку всем подходящим специалистам города
-		} else if message.Text == "Отменить" {
-			// todo удалить созданную заявку
-		}
+			request, err := h.db.GetFreeRequest(message.Chat.ID)
+			if err != nil {
+				errPrintf("Failed to get free request %v", err)
 
-		// todo изменить процесс обновления заявки в бд. Сейчас он просто меняет заявку по telegram_id, но их может быть несколько. Надо сделать так, чтобы обновлялась только свободная заявка
+				msg := tgbotapi.NewMessage(message.Chat.ID, "Не удалось найти заявку в базе данных. Пожалуйста, сообщите об ошибке разработчику")
+				_, err := h.bot.Send(msg)
+				errPrintf("Failed to send message %v", err)
+				return
+			}
+
+			workers, err := h.db.GetFreeWorkersByCityAndSpeciality(request.City, request.Specialist)
+			if err != nil {
+				errPrintf("Failed to get workers %v", err)
+				msg := tgbotapi.NewMessage(message.Chat.ID, "Возникла ошибка при рассылке заявки рабочим. Пожалуйста, сообщите об этом разработчику")
+
+				_, err := h.bot.Send(msg)
+				errPrintf("Failed to send message %v", err)
+				return
+			}
+
+			for _, worker := range workers {
+				messageText := fmt.Sprintf("⚡️⚡️⚡️ Новая заявка!\nОписание работ: %s", request.Description)
+				msg := tgbotapi.NewMessage(worker.TelegramID, messageText)
+				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("Принять✅", "accept_"+strconv.FormatInt(request.ID, 10)),
+						tgbotapi.NewInlineKeyboardButtonData("Отклонить❌", "decline_"+strconv.FormatInt(request.ID, 10)),
+					),
+				)
+				_, err = h.bot.Send(msg)
+				errPrintf("Failed to send message %v", err)
+			}
+
+		} else if message.Text == "Отменить" {
+			err := h.db.DeleteFreerequest(message.Chat.ID)
+			errPrintf("Failed to delete free request %v", err)
+		}
 
 		err := h.db.SetUserState(message.Chat.ID, "")
 		errPrintf("Failed to set user state %v", err)

@@ -43,6 +43,7 @@ func (db *Database) GetUserState(tgID int64) (string, error) {
 }
 
 type Request struct {
+	ID          int64
 	TelegramID  int64
 	Specialist  string
 	City        string
@@ -51,8 +52,8 @@ type Request struct {
 
 func (db *Database) GetFreeRequest(tgID int64) (Request, error) {
 	var request Request
-	query := `SELECT telegram_id, specialist, city, description FROM requests WHERE telegram_id = $1 AND free = true`
-	err := db.Conn.QueryRow(query, tgID).Scan(&request.TelegramID, &request.Specialist, &request.City, &request.Description)
+	query := `SELECT id, telegram_id, specialist, city, description FROM requests WHERE telegram_id = $1 AND free = true`
+	err := db.Conn.QueryRow(query, tgID).Scan(&request.ID, &request.TelegramID, &request.Specialist, &request.City, &request.Description)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Request{}, nil
@@ -60,6 +61,12 @@ func (db *Database) GetFreeRequest(tgID int64) (Request, error) {
 		return Request{}, err
 	}
 	return request, nil
+}
+
+func (db *Database) DeleteFreerequest(tgID int64) error {
+	query := `DELETE FROM requests WHERE telegram_id = $1 AND free = true`
+	_, err := db.Conn.Exec(query, tgID)
+	return err
 }
 
 func (db *Database) SetUserState(tgID int64, state string) error {
@@ -161,6 +168,40 @@ func (db *Database) SetWorkerContactData(tgID int64, fullname, phone string) err
 	return err
 }
 
+type Worker struct {
+	ID         int64
+	TelegramID int64
+	FullName   string
+	Phone      string
+	Speciality string
+	City       string
+}
+
+func (db *Database) GetFreeWorkersByCityAndSpeciality(city string, speciality string) ([]Worker, error) {
+	query := "SELECT id, telegram_id, fullname, phone, speciality, city FROM workers WHERE city = $1 AND speciality = $2"
+	rows, err := db.Conn.Query(query, city, speciality)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var workers []Worker
+	for rows.Next() {
+		var worker Worker
+		if err := rows.Scan(&worker.ID, &worker.TelegramID, &worker.FullName, &worker.Phone, &worker.Speciality, &worker.City); err != nil {
+			return nil, err
+		}
+		workers = append(workers, worker)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return workers, nil
+}
+
 func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue string) error {
 	query := fmt.Sprintf(`
         INSERT INTO %s (telegram_id, %s)
@@ -168,6 +209,12 @@ func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue str
         ON CONFLICT (telegram_id)
         DO UPDATE SET %s = EXCLUDED.%s`, tableName, fieldName, fieldName, fieldName)
 
+	_, err := db.Conn.Exec(query, tgID, fieldValue)
+	return err
+}
+
+func (db *Database) SetFreeRequestField(tgID int64, fieldName, fieldValue string) error {
+	query := fmt.Sprintf(`UPDATE requests SET %s = $1 WHERE free = true AND telegram_id = $2`, fieldName)
 	_, err := db.Conn.Exec(query, tgID, fieldValue)
 	return err
 }
