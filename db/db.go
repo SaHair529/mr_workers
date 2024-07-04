@@ -214,7 +214,7 @@ func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue str
 }
 
 func (db *Database) SetFreeRequestField(tgID int64, fieldName, fieldValue string) error {
-	query := fmt.Sprintf(`UPDATE requests SET %s = $1 WHERE free = true AND telegram_id = $2`, fieldName)
+	query := fmt.Sprintf(`UPDATE requests SET %s = $2 WHERE free = true AND telegram_id = $1`, fieldName)
 	_, err := db.Conn.Exec(query, tgID, fieldValue)
 	return err
 }
