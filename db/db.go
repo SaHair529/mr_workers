@@ -24,6 +24,8 @@ func ConnectDB(connectingString string) (*Database, error) {
 	return &Database{Conn: conn}, nil
 }
 
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< USER STATE <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 type UserState struct {
 	TelegramID int64
 	State      string
@@ -41,6 +43,20 @@ func (db *Database) GetUserState(tgID int64) (string, error) {
 	}
 	return state, nil
 }
+
+func (db *Database) SetUserState(tgID int64, state string) error {
+	query := `
+        INSERT INTO users_states (telegram_id, state)
+        VALUES ($1, $2)
+        ON CONFLICT (telegram_id)
+        DO UPDATE SET state = EXCLUDED.state`
+	_, err := db.Conn.Exec(query, tgID, state)
+	return err
+}
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> USER STATE >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< REQUEST <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 type Request struct {
 	ID          int64
@@ -69,15 +85,21 @@ func (db *Database) DeleteFreerequest(tgID int64) error {
 	return err
 }
 
-func (db *Database) SetUserState(tgID int64, state string) error {
-	query := `
-        INSERT INTO users_states (telegram_id, state)
-        VALUES ($1, $2)
-        ON CONFLICT (telegram_id)
-        DO UPDATE SET state = EXCLUDED.state`
-	_, err := db.Conn.Exec(query, tgID, state)
+func (db *Database) CreateFreeRequest(tgID int64) error {
+	query := `INSERT INTO requests (telegram_id) VALUES ($1)`
+	_, err := db.Conn.Exec(query, tgID)
 	return err
 }
+
+func (db *Database) SetUnfreeRequest(tgID int64) error {
+	query := `UPDATE requests SET free = false WHERE telegram_id = $1 AND free = true`
+	_, err := db.Conn.Exec(query, tgID)
+	return err
+}
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> REQUEST >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< USER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 type User struct {
 	ID         int64
@@ -104,6 +126,10 @@ func (db *Database) AddUser(tgID int64, fullname string, phone string) error {
 	_, err := db.Conn.Exec(query, tgID, fullname, phone)
 	return err
 }
+
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> USER >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< SPECIALITY <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 type Speciality struct {
 	ID         int64
@@ -148,6 +174,19 @@ func (db *Database) GetAllSpecialities() ([]Speciality, error) {
 	return specialities, nil
 }
 
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> SPECIALITY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< WORKER <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+type Worker struct {
+	ID         int64
+	TelegramID int64
+	FullName   string
+	Phone      string
+	Speciality string
+	City       string
+}
+
 func (db *Database) SetWorkerSpeciality(tgID int64, speciality string) error {
 	query := `
         INSERT INTO workers (telegram_id, speciality)
@@ -166,15 +205,6 @@ func (db *Database) SetWorkerContactData(tgID int64, fullname, phone string) err
         DO UPDATE SET fullname = EXCLUDED.fullname, phone = EXCLUDED.phone`
 	_, err := db.Conn.Exec(query, tgID, fullname, phone)
 	return err
-}
-
-type Worker struct {
-	ID         int64
-	TelegramID int64
-	FullName   string
-	Phone      string
-	Speciality string
-	City       string
 }
 
 func (db *Database) GetFreeWorkersByCityAndSpeciality(city string, speciality string) ([]Worker, error) {
@@ -202,11 +232,7 @@ func (db *Database) GetFreeWorkersByCityAndSpeciality(city string, speciality st
 	return workers, nil
 }
 
-func (db *Database) CreateFreeRequest(tgID int64) error {
-	query := `INSERT INTO requests (telegram_id) VALUES ($1)`
-	_, err := db.Conn.Exec(query, tgID)
-	return err
-}
+// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> WORKER >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue string) error {
 	query := fmt.Sprintf(`
@@ -222,12 +248,6 @@ func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue str
 func (db *Database) SetFreeRequestField(tgID int64, fieldName, fieldValue string) error {
 	query := fmt.Sprintf(`UPDATE requests SET %s = $2 WHERE free = true AND telegram_id = $1`, fieldName)
 	_, err := db.Conn.Exec(query, tgID, fieldValue)
-	return err
-}
-
-func (db *Database) SetUnfreeRequest(tgID int64) error {
-	query := `UPDATE requests SET free = false WHERE telegram_id = $1 AND free = true`
-	_, err := db.Conn.Exec(query, tgID)
 	return err
 }
 
