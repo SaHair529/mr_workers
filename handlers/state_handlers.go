@@ -325,7 +325,7 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 
 		msgText := fmt.Sprintf(`Вот как выглядет Ваша заявка:
 
-Ваш ID в телеграме: %s
+Ваш ID в телеграме: %d
 Необходимый специалист: %s
 Город: %s
 Описание работ: %s
