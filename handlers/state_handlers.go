@@ -377,8 +377,8 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 				msg := tgbotapi.NewMessage(worker.TelegramID, messageText)
 				msg.ReplyMarkup = tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("Принять✅", "accept_"+strconv.FormatInt(request.ID, 10)),
-						tgbotapi.NewInlineKeyboardButtonData("Отклонить❌", "decline_"+strconv.FormatInt(request.ID, 10)),
+						tgbotapi.NewInlineKeyboardButtonData("Принять✅", "accept_request__"+strconv.FormatInt(request.ID, 10)),
+						tgbotapi.NewInlineKeyboardButtonData("Отклонить❌", "decline_request__"+strconv.FormatInt(request.ID, 10)),
 					),
 				)
 				_, err = h.bot.Send(msg)
