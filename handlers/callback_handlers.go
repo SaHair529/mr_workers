@@ -37,8 +37,35 @@ func (h *CallbackHandler) HandleCallback(callback *tgbotapi.CallbackQuery) {
 			return
 		}
 
+		answerCallback := tgbotapi.NewCallback(callback.ID, "")
+		_, err = h.bot.AnswerCallbackQuery(answerCallback)
+		errPrintf("Failed to answer callback: %v", err)
+
 		h.handleAcceptRequest(requestId, callback)
+
+	case "decline_request":
+		requestId, err := strconv.ParseInt(internalCallback, 10, 64)
+		if err != nil {
+			errPrintf("Failed to convert string to int64: %v", err)
+			msg := tgbotapi.NewMessage(requestId, "Произошла ошибка. Пожалуйста, обратитесь к разработчику")
+			_, err := h.bot.Send(msg)
+			errPrintf("Failed to send message: %v", err)
+			return
+		}
+
+		answerCallback := tgbotapi.NewCallback(callback.ID, "")
+		_, err = h.bot.AnswerCallbackQuery(answerCallback)
+		errPrintf("Failed to answer callback: %v", err)
+
+		h.handleDeclineRequest(callback)
 	}
+}
+
+func (h *CallbackHandler) handleDeclineRequest(callback *tgbotapi.CallbackQuery) {
+	newInlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Заявка отклонена", "ignore")))
+	editMessage := tgbotapi.NewEditMessageReplyMarkup(callback.Message.Chat.ID, callback.Message.MessageID, newInlineKeyboard)
+	_, err := h.bot.Send(editMessage)
+	errPrintf("Failed to edit markup %v", err)
 }
 
 func (h *CallbackHandler) handleAcceptRequest(requestId int64, callback *tgbotapi.CallbackQuery) {
