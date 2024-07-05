@@ -62,6 +62,11 @@ func (h *CallbackHandler) handleAcceptRequest(requestId int64, callback *tgbotap
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Заявка уже недоступна, так как принята другим человеком")
 		_, err := h.bot.Send(msg)
 		errPrintf("Failed to send message %v", err)
+
+		newInlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Заявка недоступна", "ignore")))
+		editMessage := tgbotapi.NewEditMessageReplyMarkup(callback.Message.Chat.ID, callback.Message.MessageID, newInlineKeyboard)
+		_, err = h.bot.Send(editMessage)
+		errPrintf("Failed to edit markup %v", err)
 		return
 	}
 
@@ -85,6 +90,11 @@ func (h *CallbackHandler) handleAcceptRequest(requestId int64, callback *tgbotap
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, msgText)
 	_, err = h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)
+
+	newInlineKeyboard := tgbotapi.NewInlineKeyboardMarkup(tgbotapi.NewInlineKeyboardRow(tgbotapi.NewInlineKeyboardButtonData("Заявка принята", "ignore")))
+	editMessage := tgbotapi.NewEditMessageReplyMarkup(callback.Message.Chat.ID, callback.Message.MessageID, newInlineKeyboard)
+	_, err = h.bot.Send(editMessage)
+	errPrintf("Failed to edit markup %v", err)
 
 	err = h.db.SetUnfreeRequest(request.TelegramID)
 	errPrintf("Failed to get request: %v", err)
