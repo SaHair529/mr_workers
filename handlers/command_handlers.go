@@ -88,17 +88,10 @@ func (h *CommandHandler) HandleContact(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) handleDefault(message *tgbotapi.Message) {
-	user, err := h.db.GetUserByTgId(message.Chat.ID)
-	errPrintf("Failed to get user %v", err)
+	msg := tgbotapi.NewMessage(message.Chat.ID, constants.MainMenuMessage)
 
-	if user == (db.User{}) {
-		msg := tgbotapi.NewMessage(message.Chat.ID, h.messages.Default)
-
-		_, err := h.bot.Send(msg)
-		errPrintf("Failed to send message %v", err)
-
-		return
-	}
+	_, err := h.bot.Send(msg)
+	errPrintf("Failed to send message %v", err)
 }
 
 func (h *CommandHandler) handleRegistrationCommand(message *tgbotapi.Message) {
