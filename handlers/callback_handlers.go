@@ -1,17 +1,23 @@
 package handlers
 
 import (
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"shdbd/mr_workers/db"
 	"strconv"
 	"strings"
 )
 
 type CallbackHandler struct {
 	bot *tgbotapi.BotAPI
+	db  *db.Database
 }
 
-func NewCallbackHandler(bot *tgbotapi.BotAPI) *CallbackHandler {
-	return &CallbackHandler{bot: bot}
+func NewCallbackHandler(bot *tgbotapi.BotAPI, db *db.Database) *CallbackHandler {
+	return &CallbackHandler{
+		bot: bot,
+		db:  db,
+	}
 }
 
 func (h *CallbackHandler) HandleCallback(callback *tgbotapi.CallbackQuery) {
@@ -36,9 +42,56 @@ func (h *CallbackHandler) HandleCallback(callback *tgbotapi.CallbackQuery) {
 }
 
 func (h *CallbackHandler) handleAcceptRequest(requestId int64, callback *tgbotapi.CallbackQuery) {
-	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, strconv.FormatInt(requestId, 10))
-	_, err := h.bot.Send(msg)
-	errPrintf("Failed to send message: %v", err)
+	request, err := h.db.GetRequestById(requestId)
+	errPrintf("Failed to get request: %v", err)
+	if err != nil {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка. Пожалуйста, обратитесь к разработчику")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
 
-	// todo обработать принятие заявки
+	if request == (db.Request{}) {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Заявка не найдена. Пожалуйста, обратитесь к разработчику")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
+
+	if !request.Free {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Заявка уже недоступна, так как принята другим человеком")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
+
+	user, err := h.db.GetUserByTgId(request.TelegramID)
+	errPrintf("Failed to get request: %v", err)
+	if err != nil {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка. Пожалуйста, обратитесь к разработчику")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
+
+	if user == (db.User{}) {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Пользователь не найден. Пожалуйста, обратитесь к разработчику")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
+
+	msgText := fmt.Sprintf("Заявка принята ✅\nСвяжитесь с работодателем для обсуждения деталей по номеру %s", user.Phone)
+	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, msgText)
+	_, err = h.bot.Send(msg)
+	errPrintf("Failed to send message %v", err)
+
+	err = h.db.SetUnfreeRequest(request.TelegramID)
+	errPrintf("Failed to get request: %v", err)
+	if err != nil {
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, "Произошла ошибка. Пожалуйста, обратитесь к разработчику")
+		_, err := h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
 }

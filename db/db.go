@@ -64,12 +64,26 @@ type Request struct {
 	Specialist  string
 	City        string
 	Description string
+	Free        bool
 }
 
 func (db *Database) GetFreeRequest(tgID int64) (Request, error) {
 	var request Request
 	query := `SELECT id, telegram_id, specialist, city, description FROM requests WHERE telegram_id = $1 AND free = true`
 	err := db.Conn.QueryRow(query, tgID).Scan(&request.ID, &request.TelegramID, &request.Specialist, &request.City, &request.Description)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Request{}, nil
+		}
+		return Request{}, err
+	}
+	return request, nil
+}
+
+func (db *Database) GetRequestById(id int64) (Request, error) {
+	var request Request
+	query := `SELECT id, telegram_id, specialist, city, description, free FROM requests WHERE id = $1`
+	err := db.Conn.QueryRow(query, id).Scan(&request.ID, &request.TelegramID, &request.Specialist, &request.City, &request.Description, &request.Free)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Request{}, nil
@@ -108,17 +122,17 @@ type User struct {
 	Phone      string
 }
 
-func (db *Database) GetUserByTgId(tgID int64) (*User, error) {
+func (db *Database) GetUserByTgId(tgID int64) (User, error) {
 	var user User
 	query := `SELECT id, telegram_id, fullname, phone FROM users WHERE telegram_id = $1`
 	err := db.Conn.QueryRow(query, tgID).Scan(&user.ID, &user.TelegramID, &user.FullName, &user.Phone)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return User{}, nil
 		}
-		return nil, err
+		return User{}, err
 	}
-	return &user, nil
+	return user, nil
 }
 
 func (db *Database) AddUser(tgID int64, fullname string, phone string) error {

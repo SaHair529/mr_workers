@@ -24,7 +24,7 @@ func main() {
 	stateHandler := handlers.NewStateHandler(bot, db)
 	messageHandler := handlers.NewMessageHandler(bot)
 	commandHanler := handlers.NewCommandHandler(bot, db)
-	callbackHandler := handlers.NewCallbackHandler(bot)
+	callbackHandler := handlers.NewCallbackHandler(bot, db)
 
 	updates := tgbotapi.NewUpdate(0)
 	updates.Timeout = 60
