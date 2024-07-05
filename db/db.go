@@ -202,6 +202,12 @@ func (db *Database) GetFreeWorkersByCityAndSpeciality(city string, speciality st
 	return workers, nil
 }
 
+func (db *Database) CreateFreeRequest(tgID int64) error {
+	query := `INSERT INTO requests (telegram_id) VALUES ($1)`
+	_, err := db.Conn.Exec(query, tgID)
+	return err
+}
+
 func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue string) error {
 	query := fmt.Sprintf(`
         INSERT INTO %s (telegram_id, %s)
@@ -216,6 +222,12 @@ func (db *Database) SetRowField(tgID int64, tableName, fieldName, fieldValue str
 func (db *Database) SetFreeRequestField(tgID int64, fieldName, fieldValue string) error {
 	query := fmt.Sprintf(`UPDATE requests SET %s = $2 WHERE free = true AND telegram_id = $1`, fieldName)
 	_, err := db.Conn.Exec(query, tgID, fieldValue)
+	return err
+}
+
+func (db *Database) SetUnfreeRequest(tgID int64) error {
+	query := `UPDATE requests SET free = false WHERE telegram_id = $1 AND free = true`
+	_, err := db.Conn.Exec(query, tgID)
 	return err
 }
 

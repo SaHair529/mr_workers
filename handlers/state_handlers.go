@@ -206,6 +206,26 @@ func (h *StateHandler) handleRegistrationState(internalState string, message *tg
 func (h *StateHandler) handleCreateRequestState(internalState string, message *tgbotapi.Message) {
 	switch internalState {
 	case "pick_specialist":
+		freeRequest, err := h.db.GetFreeRequest(message.Chat.ID)
+		if err != nil {
+			msg := tgbotapi.NewMessage(message.Chat.ID, "Произошла ошибка. Пожалуйста, обратитесь к разработчику")
+			_, err := h.bot.Send(msg)
+			errPrintf("Failed to send message %v", err)
+			err = h.db.SetUserState(message.Chat.ID, "")
+			errPrintf("Failed to set user state %v", err)
+			return
+		}
+
+		if freeRequest != (db.Request{}) {
+			msg := tgbotapi.NewMessage(message.Chat.ID, "У вас уже есть одна свободная заявка, которая еще никем не принята. Пожалуйста закройте её или подождите пока её примут")
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			_, err := h.bot.Send(msg)
+			errPrintf("Failed to send message %v", err)
+			err = h.db.SetUserState(message.Chat.ID, "")
+			errPrintf("Failed to set user state %v", err)
+			return
+		}
+
 		pickedSpecialist := message.Text
 		specialities, err := h.db.GetAllSpecialities()
 		errPrintf("Failed to get specialities %v", err)
@@ -217,8 +237,14 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 			return
 		}
 
-		err = h.db.SetRowField(message.Chat.ID, "requests", "specialist", pickedSpecialist)
-		errPrintf("Failed to set row field %v", err)
+		freeRequest, err = h.db.GetFreeRequest(message.Chat.ID)
+		errPrintf("Failed to get free request %v", err)
+		if freeRequest == (db.Request{}) {
+			err = h.db.CreateFreeRequest(message.Chat.ID)
+			errPrintf("Failed to create free request %v", err)
+		}
+		err = h.db.SetFreeRequestField(message.Chat.ID, "specialist", pickedSpecialist)
+		errPrintf("Failed to set free request field %v", err)
 
 		var rows [][]tgbotapi.KeyboardButton
 		var row []tgbotapi.KeyboardButton
@@ -325,7 +351,7 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 			return
 		}
 
-		if message.Text == "Потвердить" {
+		if message.Text == "Подтвердить" {
 			request, err := h.db.GetFreeRequest(message.Chat.ID)
 			if err != nil {
 				errPrintf("Failed to get free request %v", err)
@@ -358,10 +384,20 @@ func (h *StateHandler) handleCreateRequestState(internalState string, message *t
 				_, err = h.bot.Send(msg)
 				errPrintf("Failed to send message %v", err)
 			}
+			errPrintf("Failed to set unfree request %v", err)
 
+			msg := tgbotapi.NewMessage(message.Chat.ID, "✅ Заявка создана! Ждите откликов рабочих")
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			_, err = h.bot.Send(msg)
+			errPrintf("Failed to send message %v", err)
 		} else if message.Text == "Отменить" {
 			err := h.db.DeleteFreerequest(message.Chat.ID)
 			errPrintf("Failed to delete free request %v", err)
+
+			msg := tgbotapi.NewMessage(message.Chat.ID, "Заявка успешно удалена")
+			msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+			_, err = h.bot.Send(msg)
+			errPrintf("Failed to send message %v", err)
 		}
 
 		err := h.db.SetUserState(message.Chat.ID, "")
