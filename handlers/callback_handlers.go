@@ -123,6 +123,11 @@ func (h *CallbackHandler) handleAcceptRequest(requestId int64, callback *tgbotap
 	_, err = h.bot.Send(editMessage)
 	errPrintf("Failed to edit markup %v", err)
 
+	msgText = fmt.Sprintf("Ваша заявка принята рабочим @%s. Свяжитесь с ним для обсуждения деталей", callback.From.UserName)
+	msg = tgbotapi.NewMessage(callback.Message.Chat.ID, msgText)
+	_, err = h.bot.Send(msg)
+	errPrintf("Failed to send message %v", err)
+
 	err = h.db.SetUnfreeRequest(request.TelegramID)
 	errPrintf("Failed to get request: %v", err)
 	if err != nil {
