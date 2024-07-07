@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"io/ioutil"
 	"log"
@@ -47,6 +48,8 @@ func (h *CommandHandler) HandleCommand(message *tgbotapi.Message) {
 		h.handleMainCommand(message)
 	case "create_request":
 		h.handleCreateRequestCommand(message)
+	case "my_profile":
+		h.handleMyProfileCommand(message)
 	default:
 		h.handleDefault(message)
 	}
@@ -166,4 +169,36 @@ func (h *CommandHandler) handleMainCommand(message *tgbotapi.Message) {
 
 	_, err := h.bot.Send(msg)
 	errPrintf("Failed to send message %v", err)
+}
+
+func (h *CommandHandler) handleMyProfileCommand(message *tgbotapi.Message) {
+	user, err := h.db.GetUserByTgId(message.Chat.ID)
+	errPrintf("Failed to get user %v", err)
+	if user == (db.User{}) {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Вы не зарегистрированы как клиент. Чтобы зарегистрироваться как клиент, введите /registration")
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+	} else {
+		msgText := fmt.Sprintf("Вы зарегистрированы как клиент. Ваши данные:\n\nФИО: %s\nТелефон: %s\nID: %d", user.FullName, user.Phone, user.ID)
+		msg := tgbotapi.NewMessage(message.Chat.ID, msgText)
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+	}
+
+	worker, err := h.db.GetWorkerByTgId(message.Chat.ID)
+	errPrintf("Failed to get worker %v", err)
+	if worker == (db.Worker{}) {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Вы не зарегистрированы как Рабочий. Чтобы зарегистрироваться как рабочий, введите /registration")
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+	} else {
+		msgText := fmt.Sprintf("Вы зарегистрированы как рабочий. Ваши данные:\n\nФИО: %s\nСпециальность: %s\nТелефон: %s\nГород: %s\nID: %d", worker.FullName, worker.Speciality, worker.Phone, worker.City, worker.ID)
+		msg := tgbotapi.NewMessage(message.Chat.ID, msgText)
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+	}
 }

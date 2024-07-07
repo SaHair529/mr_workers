@@ -201,6 +201,19 @@ type Worker struct {
 	City       string
 }
 
+func (db *Database) GetWorkerByTgId(tgID int64) (Worker, error) {
+	var worker Worker
+	query := `SELECT id, fullname, phone, city, speciality FROM workers WHERE telegram_id = $1`
+	err := db.Conn.QueryRow(query, tgID).Scan(&worker.ID, &worker.FullName, &worker.Phone, &worker.City, &worker.Speciality)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Worker{}, nil
+		}
+		return Worker{}, err
+	}
+	return worker, nil
+}
+
 func (db *Database) SetWorkerSpeciality(tgID int64, speciality string) error {
 	query := `
         INSERT INTO workers (telegram_id, speciality)
