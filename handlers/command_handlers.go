@@ -125,6 +125,16 @@ func (h *CommandHandler) handleResetCommand(message *tgbotapi.Message) {
 }
 
 func (h *CommandHandler) handleCreateRequestCommand(message *tgbotapi.Message) {
+	user, err := h.db.GetUserByTgId(message.Chat.ID)
+	errPrintf("Failed to get user %v", err)
+	if user == (db.User{}) {
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Вы не зарегистрированы. Для создания заявки нужно зарегистрироваться как Клиент\nВведите /registration и выберите \"Клиент\"\nПосле успешной регистрации повторите команду /create_request для создания заявки")
+		msg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
+		_, err = h.bot.Send(msg)
+		errPrintf("Failed to send message %v", err)
+		return
+	}
+
 	specialities, err := h.db.GetAllSpecialities()
 	if err != nil {
 		errPrintf("Failed to get specialities %v", err)
